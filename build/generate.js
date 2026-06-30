@@ -1,7 +1,8 @@
-/* Reads matches.json (football-data.org WC feed) + the tracker HTML,
-   rewrites the RESULTS:START..END block, writes the HTML back.
-   Usage: node generate.js <matches.json> <tracker.html> */
+/* Reads matches.json (football-data.org WC feed), rewrites the RESULTS:START..END
+   block in the tracker HTML, and writes data.json (polled live by the page).
+   Usage: node build/generate.js <matches.json> <tracker.html> */
 const fs = require("fs");
+const path = require("path");
 const [,, matchesPath, htmlPath] = process.argv;
 
 // API name -> sweepstake canonical name
@@ -26,49 +27,51 @@ const STAGE_TO_ROUND = {
 const ROUND_ORDER = ["Round of 32","Round of 16","Quarter-finals","Semi-finals","Final"];
 const KO_STAGES = new Set(Object.keys(STAGE_TO_ROUND).concat(["THIRD_PLACE"]));
 
+const FINISHED = new Set(["FINISHED","AWARDED"]);
+const LIVE = new Set(["IN_PLAY"]);
+const PAUSED = new Set(["PAUSED"]);
+
 const data = JSON.parse(fs.readFileSync(matchesPath, "utf8"));
 const matches = data.matches || [];
-const FINISHED = new Set(["FINISHED","AWARDED"]);
 
+const stOf = s => FINISHED.has(s) ? "FT" : LIVE.has(s) ? "LIVE" : PAUSED.has(s) ? "HT" : "sched";
 const winnerName = m => {
   if (!FINISHED.has(m.status)) return null;
   const w = m.score && m.score.winner;
   if (w === "HOME_TEAM") return canon(m.homeTeam.name);
   if (w === "AWAY_TEAM") return canon(m.awayTeam.name);
-  return null; // draw shouldn't happen in KO; group draws irrelevant here
+  return null;
 };
 
-// --- bracket ---
-const bracket = ROUND_ORDER.map(r => ({ name: r, matches: [] }));
+// --- bracket (with scores / live status / kickoff) ---
 const roundIdx = Object.fromEntries(ROUND_ORDER.map((r,i)=>[r,i]));
+const bracket = ROUND_ORDER.map(r => ({ name: r, matches: [] }));
 matches
   .filter(m => STAGE_TO_ROUND[m.stage])
   .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate) || a.id - b.id)
   .forEach(m => {
-    const round = STAGE_TO_ROUND[m.stage];
-    bracket[roundIdx[round]].matches.push({
+    const ft = (m.score && m.score.fullTime) || {};
+    bracket[roundIdx[STAGE_TO_ROUND[m.stage]]].matches.push({
       a: canon(m.homeTeam && m.homeTeam.name),
       b: canon(m.awayTeam && m.awayTeam.name),
       w: winnerName(m),
+      sa: ft.home != null ? ft.home : null,
+      sb: ft.away != null ? ft.away : null,
+      st: stOf(m.status),
+      ko: m.utcDate || null,
     });
   });
 
 // --- eliminations ---
-// Teams that reached any knockout match = the 32 that survived the groups.
 const reachedKO = new Set();
 matches.filter(m => KO_STAGES.has(m.stage)).forEach(m => {
   if (m.homeTeam && m.homeTeam.name) reachedKO.add(canon(m.homeTeam.name));
   if (m.awayTeam && m.awayTeam.name) reachedKO.add(canon(m.awayTeam.name));
 });
-const groupsDone = matches.filter(m => m.stage === "GROUP_STAGE")
-  .every(m => FINISHED.has(m.status));
+const groupsDone = matches.filter(m => m.stage === "GROUP_STAGE").every(m => FINISHED.has(m.status));
 
 const eliminated = new Set();
-// group-stage exits (only once groups are complete and we actually have KO teams)
-if (groupsDone && reachedKO.size > 0) {
-  SWEEP.forEach(t => { if (!reachedKO.has(t)) eliminated.add(t); });
-}
-// knockout losers
+if (groupsDone && reachedKO.size > 0) SWEEP.forEach(t => { if (!reachedKO.has(t)) eliminated.add(t); });
 matches.filter(m => KO_STAGES.has(m.stage) && FINISHED.has(m.status)).forEach(m => {
   const w = winnerName(m);
   [m.homeTeam, m.awayTeam].forEach(t => {
@@ -78,35 +81,34 @@ matches.filter(m => KO_STAGES.has(m.stage) && FINISHED.has(m.status)).forEach(m 
 });
 const elimSweep = [...eliminated].filter(t => SWEEP_SET.has(t)).sort();
 
-// --- champion ---
+// --- champion / round / live ---
 const finalM = matches.find(m => m.stage === "FINAL");
 const champion = finalM ? winnerName(finalM) : null;
 
-// --- status line + version ---
-let currentRound = "Group stage";
-for (const r of ROUND_ORDER) {
-  const ms = bracket[roundIdx[r]].matches;
-  if (ms.length && ms.some(x => x.w)) currentRound = r; // most advanced round with a result
-}
-if (champion) currentRound = "Champions crowned";
-const lastFinished = matches.filter(m => FINISHED.has(m.status))
-  .map(m => m.lastUpdated || m.utcDate).sort().pop();
-const stamp = (lastFinished || new Date().toISOString()).slice(0,10);
-const fmt = d => { const [y,mo,da]=d.split("-"); const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; return `${+da} ${M[+mo-1]} ${y}`; };
-const status = `${currentRound} · updated ${fmt(stamp)}`;
-const version = "v" + stamp + "-" + matches.filter(m=>FINISHED.has(m.status)).length;
+let round = "Round of 32";
+ROUND_ORDER.forEach(r => { if (bracket[roundIdx[r]].matches.some(x => x.st !== "sched")) round = r; });
+if (champion) round = "Champions crowned";
 
-// --- emit block ---
+const anyLive = matches.some(m => LIVE.has(m.status) || PAUSED.has(m.status));
+const generatedAt = new Date().toISOString();
+const version = "v" + generatedAt.slice(0,16) + "-" + matches.filter(m => FINISHED.has(m.status)).length;
+
+// --- write data.json (polled live by the page) ---
+const state = { version, round, generatedAt, anyLive, champion, eliminated: elimSweep, bracket };
+fs.writeFileSync(path.join(path.dirname(htmlPath), "data.json"), JSON.stringify(state));
+
+// --- bake the same into the HTML (static fallback) ---
 const j = v => JSON.stringify(v);
-const bracketLines = bracket.map(r =>
-  `  { name:${j(r.name)}, matches:${j(r.matches)} }`).join(",\n");
+const bracketLines = bracket.map(r => `  { name:${j(r.name)}, matches:${j(r.matches)} }`).join(",\n");
 const block =
 `/* === RESULTS:START — auto-generated from football-data.org; do not hand-edit === */
-const DATA_VERSION = ${j(version)};
-const STATUS = ${j(status)};
-const CHAMPION = ${j(champion)};
-const ELIMINATED_DEFAULT = ${j(elimSweep)};
-const BRACKET = [
+let DATA_VERSION = ${j(version)};
+let ROUND = ${j(round)};
+let GENERATED_AT = ${j(generatedAt)};
+let ANY_LIVE = ${j(anyLive)};
+let CHAMPION = ${j(champion)};
+let ELIMINATED = ${j(elimSweep)};
+let BRACKET = [
 ${bracketLines}
 ];
 /* === RESULTS:END === */`;
@@ -114,12 +116,12 @@ ${bracketLines}
 let html = fs.readFileSync(htmlPath, "utf8");
 const re = /\/\* === RESULTS:START[\s\S]*?=== RESULTS:END === \*\//;
 if (!re.test(html)) { console.error("RESULTS markers not found in HTML"); process.exit(1); }
-html = html.replace(re, block);
-fs.writeFileSync(htmlPath, html);
+fs.writeFileSync(htmlPath, html.replace(re, block));
 
-console.log("STATUS:", status);
-console.log("VERSION:", version);
-console.log("CHAMPION:", champion);
-console.log("ELIMINATED (sweepstake teams):", elimSweep.length, "->", elimSweep.join(", ") || "(none)");
-console.log("reachedKO count:", reachedKO.size, "| groupsDone:", groupsDone);
-bracket.forEach(r => console.log(`  ${r.name}: ${r.matches.length} matches, ${r.matches.filter(x=>x.w).length} decided`));
+console.log("ROUND:", round, "| anyLive:", anyLive, "| champion:", champion);
+console.log("ELIMINATED:", elimSweep.length, elimSweep.join(", ") || "(none)");
+bracket.forEach(r => {
+  const live = r.matches.filter(x => x.st === "LIVE" || x.st === "HT").length;
+  const ft = r.matches.filter(x => x.st === "FT").length;
+  console.log(`  ${r.name}: ${r.matches.length} matches · ${ft} FT · ${live} live`);
+});

@@ -2,30 +2,36 @@ name: Refresh results
 
 on:
   schedule:
-    # Poll every 30 min across the window WC2026 matches can finish
-    # (afternoon US-Eastern through late-evening US-Pacific + extra time), in UTC.
-    - cron: '0,30 15-23 * * *'   # 15:00–23:30 UTC
-    - cron: '0,30 0-7 * * *'     # 00:00–07:30 UTC
-  workflow_dispatch: {}          # allow manual runs from the Actions tab
+    # Every 5 min across the window WC2026 matches can be in play (UTC).
+    # GitHub cron is best-effort and may drift/skip under load.
+    - cron: '*/5 15-23 * * *'   # 15:00–23:55 UTC
+    - cron: '*/5 0-7 * * *'     # 00:00–07:55 UTC
+  workflow_dispatch: {}          # manual run from the Actions tab
 
+# Deploy via the GitHub Actions Pages pipeline (no 10-builds/hour branch limit).
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: refresh
-  cancel-in-progress: false
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Pull live results and rebake index.html
+      - name: Pull live results and rebuild site
         env:
           FD_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
         run: |
@@ -33,14 +39,12 @@ jobs:
             "https://api.football-data.org/v4/competitions/WC/matches" \
             -H "X-Auth-Token: $FD_TOKEN" -o build/matches.json
           node build/generate.js build/matches.json index.html
+          mkdir -p _site
+          cp index.html data.json _site/
 
-      - name: Commit if results changed
-        run: |
-          if git diff --quiet -- index.html; then
-            echo "No change — skipping commit."
-          else
-            git config user.name  "worldies-bot"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -am "Refresh results $(date -u +%F)"
-            git push
-          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

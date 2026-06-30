@@ -113,6 +113,26 @@
   .slot.lose .nm{color:var(--muted);text-decoration:line-through;
     text-decoration-color:var(--red);text-decoration-thickness:2px}
   .slot.lose .dot,.slot.lose .avatar{opacity:.4}
+  .slot .sc{font-variant-numeric:tabular-nums;font-weight:800;font-size:14px;
+    margin-left:auto;padding-left:8px;color:var(--text)}
+  .slot.lose .sc{color:var(--muted)}
+  .slot.win .sc{color:#bff0d6}
+  .slot.win::after{margin-left:6px}
+  .mfoot{display:flex;justify-content:center;align-items:center;gap:6px;
+    padding:4px 2px 2px;min-height:18px}
+  .mstat{font-size:10.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted)}
+  .mstat.ko{text-transform:none;letter-spacing:.01em;font-weight:600;font-size:11px}
+  .live{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;
+    font-weight:800;letter-spacing:.1em;color:#ff6b6b}
+  .lpip{width:7px;height:7px;border-radius:50%;background:#ff5252;
+    box-shadow:0 0 0 0 rgba(255,82,82,.6);animation:pulse 1.6s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,82,82,.55)}
+    70%{box-shadow:0 0 0 7px rgba(255,82,82,0)}100%{box-shadow:0 0 0 0 rgba(255,82,82,0)}}
+  .updated.live-now{color:#ff8c8c;background:rgba(255,82,82,.12);
+    border-color:rgba(255,82,82,.4)}
+  .updated.live-now::before{background:#ff5252;
+    box-shadow:0 0 0 3px rgba(255,82,82,.18);animation:pulse 1.6s ease-out infinite}
 
   /* ---- players ---- */
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -153,7 +173,7 @@
   footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
     color:var(--muted);font-size:12px;line-height:1.6;text-align:center}
   footer b{color:var(--text);font-weight:700}
-  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -176,7 +196,7 @@
   <section id="bracket-sec">
     <div class="sec-head">
       <h2>Knockouts</h2>
-      <span class="hint">swipe rounds sideways →</span>
+      <span class="hint">kick-offs in BST · swipe →</span>
     </div>
     <div class="champ">
       <span class="trophy">🏆</span>
@@ -194,16 +214,12 @@
       <span class="hint">struck-through = out</span>
     </div>
     <div class="grid" id="players"></div>
-    <div class="toolbar">
-      <button class="tb" id="editBtn" type="button">Edit: mark teams out</button>
-      <button class="tb" id="resetBtn" type="button">Reset to published</button>
-    </div>
-    <div class="editnote" id="editnote"></div>
   </section>
 
   <footer>
-    Results update automatically from the live tournament feed.<br>
-    <b>Edit</b> lets you cross teams out yourself on this device — your changes reset when fresh results land.
+    Scores and standings update automatically from the live match feed,
+    refreshing in the background while matches are on.<br>
+    Kick-off times shown in BST.
   </footer>
 </div>
 
@@ -229,41 +245,35 @@ const AVATARS = {"Caoimhe":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAAQABAAD//
 /* === AVATARS:END === */
 
 /* === RESULTS:START — auto-generated from football-data.org; do not hand-edit === */
-const DATA_VERSION = "v2026-06-30-76";
-const STATUS = "Round of 32 · updated 30 Jun 2026";
-const CHAMPION = null;
-const ELIMINATED_DEFAULT = ["Curaçao","Czech Republic","Germany","Haiti","Iran","Iraq","Japan","Jordan","Korea Republic","Netherlands","New Zealand","Panama","Qatar","Saudi Arabia","Scotland","South Africa","Tunisia","Turkey","Uruguay","Uzbekistan"];
-const BRACKET = [
-  { name:"Round of 32", matches:[{"a":"South Africa","b":"Canada","w":"Canada"},{"a":"Brazil","b":"Japan","w":"Brazil"},{"a":"Germany","b":"Paraguay","w":"Paraguay"},{"a":"Netherlands","b":"Morocco","w":"Morocco"},{"a":"Côte d'Ivoire","b":"Norway","w":null},{"a":"France","b":"Sweden","w":null},{"a":"Mexico","b":"Ecuador","w":null},{"a":"England","b":"Congo DR","w":null},{"a":"Belgium","b":"Senegal","w":null},{"a":"United States","b":"Bosnia and Herzegovina","w":null},{"a":"Spain","b":"Austria","w":null},{"a":"Portugal","b":"Croatia","w":null},{"a":"Switzerland","b":"Algeria","w":null},{"a":"Australia","b":"Egypt","w":null},{"a":"Argentina","b":"Cape Verde Islands","w":null},{"a":"Colombia","b":"Ghana","w":null}] },
-  { name:"Round of 16", matches:[{"a":"Canada","b":"Morocco","w":null},{"a":"Paraguay","b":null,"w":null},{"a":"Brazil","b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null}] },
-  { name:"Quarter-finals", matches:[{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null}] },
-  { name:"Semi-finals", matches:[{"a":null,"b":null,"w":null},{"a":null,"b":null,"w":null}] },
-  { name:"Final", matches:[{"a":null,"b":null,"w":null}] }
+let DATA_VERSION = "v2026-06-30T09:07-76";
+let ROUND = "Round of 32";
+let GENERATED_AT = "2026-06-30T09:07:44.851Z";
+let ANY_LIVE = false;
+let CHAMPION = null;
+let ELIMINATED = ["Curaçao","Czech Republic","Germany","Haiti","Iran","Iraq","Japan","Jordan","Korea Republic","Netherlands","New Zealand","Panama","Qatar","Saudi Arabia","Scotland","South Africa","Tunisia","Turkey","Uruguay","Uzbekistan"];
+let BRACKET = [
+  { name:"Round of 32", matches:[{"a":"South Africa","b":"Canada","w":"Canada","sa":0,"sb":1,"st":"FT","ko":"2026-06-28T19:00:00Z"},{"a":"Brazil","b":"Japan","w":"Brazil","sa":2,"sb":1,"st":"FT","ko":"2026-06-29T17:00:00Z"},{"a":"Germany","b":"Paraguay","w":"Paraguay","sa":4,"sb":5,"st":"FT","ko":"2026-06-29T20:30:00Z"},{"a":"Netherlands","b":"Morocco","w":"Morocco","sa":3,"sb":4,"st":"FT","ko":"2026-06-30T01:00:00Z"},{"a":"Côte d'Ivoire","b":"Norway","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-06-30T17:00:00Z"},{"a":"France","b":"Sweden","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-06-30T21:00:00Z"},{"a":"Mexico","b":"Ecuador","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-01T01:00:00Z"},{"a":"England","b":"Congo DR","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-01T16:00:00Z"},{"a":"Belgium","b":"Senegal","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-01T20:00:00Z"},{"a":"United States","b":"Bosnia and Herzegovina","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-02T00:00:00Z"},{"a":"Spain","b":"Austria","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-02T19:00:00Z"},{"a":"Portugal","b":"Croatia","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-02T23:00:00Z"},{"a":"Switzerland","b":"Algeria","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-03T03:00:00Z"},{"a":"Australia","b":"Egypt","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-03T18:00:00Z"},{"a":"Argentina","b":"Cape Verde Islands","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-03T22:00:00Z"},{"a":"Colombia","b":"Ghana","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-04T01:30:00Z"}] },
+  { name:"Round of 16", matches:[{"a":"Canada","b":"Morocco","w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-04T17:00:00Z"},{"a":"Paraguay","b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-04T21:00:00Z"},{"a":"Brazil","b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-05T20:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-06T00:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-06T19:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-07T00:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-07T16:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-07T20:00:00Z"}] },
+  { name:"Quarter-finals", matches:[{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-09T20:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-10T19:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-11T21:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-12T01:00:00Z"}] },
+  { name:"Semi-finals", matches:[{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-14T19:00:00Z"},{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-15T19:00:00Z"}] },
+  { name:"Final", matches:[{"a":null,"b":null,"w":null,"sa":null,"sb":null,"st":"sched","ko":"2026-07-19T19:00:00Z"}] }
 ];
 /* === RESULTS:END === */
 
 /* ============================================================
    App
    ============================================================ */
-const KEY = "wc2026-sweep-out-v1";
 const ownerOf = {};
 PLAYERS.forEach(p => p.countries.forEach(c => ownerOf[c] = p));
-
-function loadOut(){
-  // Per-device edits are kept only while the published results are unchanged.
-  // When a fresh pull lands (new DATA_VERSION), everyone snaps back to the official set.
-  try{
-    const s = JSON.parse(localStorage.getItem(KEY) || "null");
-    if(s && s.ver === DATA_VERSION && Array.isArray(s.out)) return new Set(s.out);
-  }catch(e){}
-  return new Set(ELIMINATED_DEFAULT);
-}
-function saveOut(set){
-  try{ localStorage.setItem(KEY, JSON.stringify({ver:DATA_VERSION, out:[...set]})); }catch(e){}
-}
-let out = loadOut();
-
 const $ = s => document.querySelector(s);
+const elimSet = () => new Set(ELIMINATED);
+
+const KO_FMT = new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/London",
+  weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit", hour12:false});
+const TIME_FMT = new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/London",
+  hour:"2-digit", minute:"2-digit", hour12:false});
+function fmtKO(iso){ try{ return KO_FMT.format(new Date(iso)).replace(",", " ·"); }catch(e){ return ""; } }
+function fmtTime(iso){ try{ return TIME_FMT.format(new Date(iso)); }catch(e){ return ""; } }
 
 function avatar(p, cls){
   const src = AVATARS[p.name];
@@ -272,10 +282,9 @@ function avatar(p, cls){
 }
 
 function renderBoard(){
-  const rows = PLAYERS.map(p => {
-    const alive = p.countries.filter(c => !out.has(c)).length;
-    return {p, alive};
-  }).sort((a,b) => b.alive - a.alive || a.p.name.localeCompare(b.p.name));
+  const out = elimSet();
+  const rows = PLAYERS.map(p => ({p, alive: p.countries.filter(c => !out.has(c)).length}))
+    .sort((a,b) => b.alive - a.alive || a.p.name.localeCompare(b.p.name));
   const top = rows[0].alive;
   $("#board").innerHTML = rows.map((r,i) => {
     const leader = r.alive === top && r.alive > 0;
@@ -292,13 +301,24 @@ function renderBoard(){
   }).join("");
 }
 
-function slot(team, match){
+function slot(team, m, side){
   if(!team) return `<div class="slot tbd"><span class="dot" style="background:var(--line)"></span><span class="nm">TBD</span></div>`;
   const o = ownerOf[team];
   const mark = o ? avatar(o, "av-xs") : `<span class="dot" style="background:var(--muted)"></span>`;
   let cls = "";
-  if(match.w) cls = (match.w === team) ? "win" : "lose";
-  return `<div class="slot ${cls}">${mark}<span class="nm">${team}</span></div>`;
+  if(m.st === "FT" && m.w) cls = (m.w === team) ? "win" : "lose";
+  const showScore = m.st === "FT" || m.st === "LIVE" || m.st === "HT";
+  const v = side === "a" ? m.sa : m.sb;
+  const sc = showScore && v != null ? `<span class="sc">${v}</span>` : "";
+  return `<div class="slot ${cls}">${mark}<span class="nm">${team}</span>${sc}</div>`;
+}
+
+function matchFoot(m){
+  if(m.st === "LIVE") return `<span class="live"><span class="lpip"></span>LIVE</span>`;
+  if(m.st === "HT")   return `<span class="mstat">Half-time</span>`;
+  if(m.st === "FT")   return `<span class="mstat">Full time</span>`;
+  if(m.a && m.b && m.ko) return `<span class="mstat ko">${fmtKO(m.ko)}</span>`;
+  return `<span class="mstat">TBD</span>`;
 }
 
 function renderBracket(){
@@ -306,7 +326,7 @@ function renderBracket(){
   $("#champ").className = CHAMPION ? "team" : "team tbd";
   $("#bracket").innerHTML = BRACKET.map(rd => {
     const cards = rd.matches.map(m =>
-      `<div class="match">${slot(m.a,m)}${slot(m.b,m)}</div>`).join("");
+      `<div class="match">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot">${matchFoot(m)}</div></div>`).join("");
     return `<div class="round">
       <div class="round-lab"><span class="name">${rd.name}</span><span class="ln"></span></div>
       <div class="matches">${cards}</div>
@@ -315,13 +335,11 @@ function renderBracket(){
 }
 
 function renderPlayers(){
+  const out = elimSet();
   $("#players").innerHTML = PLAYERS.map(p => {
     const alive = p.countries.filter(c => !out.has(c)).length;
-    const chips = p.countries.map(c => {
-      const isOut = out.has(c);
-      return `<span class="chip ${isOut?"out":""}" data-c="${c.replace(/"/g,'&quot;')}">
-        <span class="cdot"></span>${c}</span>`;
-    }).join("");
+    const chips = p.countries.map(c =>
+      `<span class="chip ${out.has(c)?"out":""}"><span class="cdot"></span>${c}</span>`).join("");
     const me = p.name === ME ? `<span class="me">YOU</span>` : "";
     return `<div class="pcard" style="--oc:${p.color}">
       <div class="top">
@@ -334,41 +352,40 @@ function renderPlayers(){
   }).join("");
 }
 
-function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); }
-$("#updated").textContent = STATUS;
+function renderStatus(){
+  const t = GENERATED_AT ? ` · updated ${fmtTime(GENERATED_AT)}` : "";
+  const u = $("#updated");
+  u.textContent = (ANY_LIVE ? "● LIVE · " : "") + ROUND + t;
+  u.classList.toggle("live-now", !!ANY_LIVE);
+}
+
+function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); }
+
+function applyData(d){
+  if(!d) return;
+  if(typeof d.champion !== "undefined") CHAMPION = d.champion;
+  if(Array.isArray(d.eliminated)) ELIMINATED = d.eliminated;
+  if(Array.isArray(d.bracket)) BRACKET = d.bracket;
+  if(d.round) ROUND = d.round;
+  if(d.generatedAt) GENERATED_AT = d.generatedAt;
+  ANY_LIVE = !!d.anyLive;
+  DATA_VERSION = d.version || DATA_VERSION;
+  renderAll();
+}
+
+// Live refresh: pull the freshly-deployed data.json in the background.
+// Falls back silently to the baked-in snapshot when offline / opened as a local file.
+async function poll(){
+  try{
+    const r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"});
+    if(r.ok) applyData(await r.json());
+  }catch(e){ /* keep current data */ }
+}
+
 renderAll();
-
-/* editing */
-let editing = false;
-const editBtn = $("#editBtn"), note = $("#editnote");
-editBtn.addEventListener("click", () => {
-  editing = !editing;
-  document.body.classList.toggle("editing", editing);
-  editBtn.classList.toggle("on", editing);
-  editBtn.textContent = editing ? "Done editing" : "Edit: mark teams out";
-  note.textContent = editing ? "Tap a country to toggle it out / back in." : "";
-  note.classList.toggle("show", editing);
-});
-
-$("#players").addEventListener("click", e => {
-  if(!editing) return;
-  const chip = e.target.closest(".chip");
-  if(!chip) return;
-  const c = chip.getAttribute("data-c").replace(/&quot;/g,'"');
-  if(out.has(c)) out.delete(c); else out.add(c);
-  saveOut(out);
-  renderAll();
-  document.body.classList.add("editing"); // keep edit mode after re-render
-});
-
-$("#resetBtn").addEventListener("click", () => {
-  try{ localStorage.removeItem(KEY); }catch(e){}
-  out = new Set(ELIMINATED_DEFAULT);
-  renderAll();
-  note.textContent = "Reset to the published results.";
-  note.classList.add("show");
-  setTimeout(() => { if(!editing){ note.textContent=""; note.classList.remove("show"); } }, 2000);
-});
+poll();
+setInterval(poll, 60000);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) poll(); });
 </script>
 </body>
 </html>
