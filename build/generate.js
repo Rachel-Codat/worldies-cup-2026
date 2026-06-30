@@ -31,8 +31,12 @@ const FINISHED = new Set(["FINISHED","AWARDED"]);
 const LIVE = new Set(["IN_PLAY"]);
 const PAUSED = new Set(["PAUSED"]);
 
-const data = JSON.parse(fs.readFileSync(matchesPath, "utf8"));
-const matches = data.matches || [];
+let matches = [];
+try {
+  matches = (JSON.parse(fs.readFileSync(matchesPath, "utf8")).matches) || [];
+} catch (e) {
+  console.warn("WARN: could not read/parse matches feed:", e.message);
+}
 
 const stOf = s => FINISHED.has(s) ? "FT" : LIVE.has(s) ? "LIVE" : PAUSED.has(s) ? "HT" : "sched";
 const winnerName = m => {
@@ -92,6 +96,14 @@ if (champion) round = "Champions crowned";
 const anyLive = matches.some(m => LIVE.has(m.status) || PAUSED.has(m.status));
 const generatedAt = new Date().toISOString();
 const version = "v" + generatedAt.slice(0,16) + "-" + matches.filter(m => FINISHED.has(m.status)).length;
+
+// Guard: if the feed gave us no knockout matches (API empty, restricted, or
+// failed), keep the existing committed data rather than wiping the site.
+const koCount = bracket.reduce((n, r) => n + r.matches.length, 0);
+if (koCount === 0) {
+  console.warn("WARN: feed returned 0 knockout matches — keeping existing data, no rewrite.");
+  process.exit(0);
+}
 
 // --- write data.json (polled live by the page) ---
 const state = { version, round, generatedAt, anyLive, champion, eliminated: elimSweep, bracket };

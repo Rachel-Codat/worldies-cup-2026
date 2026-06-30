@@ -373,7 +373,8 @@ function applyData(d){
   if(!d) return;
   if(typeof d.champion !== "undefined") CHAMPION = d.champion;
   if(Array.isArray(d.eliminated)) ELIMINATED = d.eliminated;
-  if(Array.isArray(d.bracket)) BRACKET = d.bracket;
+  // Only adopt a bracket that actually has games — never let an empty feed wipe the seed.
+  if(Array.isArray(d.bracket) && d.bracket.some(r => r.matches && r.matches.length)) BRACKET = d.bracket;
   if(d.round) ROUND = d.round;
   if(d.generatedAt) GENERATED_AT = d.generatedAt;
   ANY_LIVE = !!d.anyLive;
