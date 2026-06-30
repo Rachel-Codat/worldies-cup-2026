@@ -5,9 +5,10 @@ on:
     branches: [main]            # auto-deploy on every push to main
   schedule:
     # Every 5 min across the window WC2026 matches can be in play (UTC).
-    # GitHub cron is best-effort and may drift/skip under load.
-    - cron: '*/5 15-23 * * *'   # 15:00–23:55 UTC
-    - cron: '*/5 0-7 * * *'     # 00:00–07:55 UTC
+    # GitHub cron is best-effort and may drift/skip under load; offset minutes
+    # off the :00/:05 boundary, the most-contended (and most-dropped) marks.
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 15-23 * * *'
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 0-7 * * *'
   workflow_dispatch: {}          # manual run from the Actions tab
 
 # Deploy via the GitHub Actions Pages pipeline (no 10-builds/hour branch limit).
