@@ -96,11 +96,9 @@
   .round-lab .name{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
     font-weight:800;color:var(--muted)}
   .round-lab .ln{height:1px;background:var(--line);flex:1}
-  .matches{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;
-    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-  .matches::-webkit-scrollbar{height:6px}
-  .matches::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-  .match{flex:0 0 auto;min-width:158px;scroll-snap-align:start;
+  .matches{display:grid;gap:10px;padding-bottom:8px;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .match{min-width:0;
     background:var(--surface);border:1px solid var(--line);
     border-radius:11px;padding:5px;display:flex;flex-direction:column;gap:3px}
   .slot{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px}
@@ -325,7 +323,9 @@ function matchFoot(m){
 function renderBracket(){
   $("#champ").textContent = CHAMPION || "To be decided";
   $("#champ").className = CHAMPION ? "team" : "team tbd";
-  $("#bracket").innerHTML = BRACKET.map(rd => {
+  // Reveal a round only once a team has reached it (the opening round is always shown).
+  const visible = BRACKET.filter((rd,i) => i === 0 || rd.matches.some(m => m.a || m.b));
+  $("#bracket").innerHTML = visible.map(rd => {
     const cards = rd.matches.map(m =>
       `<div class="match">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot">${matchFoot(m)}</div></div>`).join("");
     return `<div class="round">
