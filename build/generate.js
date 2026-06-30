@@ -47,6 +47,16 @@ const winnerName = m => {
   return null;
 };
 
+const dataPath = path.join(path.dirname(htmlPath), "data.json");
+const priorFinishedByFixture = {};
+try {
+  JSON.parse(fs.readFileSync(dataPath, "utf8")).bracket.forEach(r => r.matches.forEach(m => {
+    if (m.st === "FT" && m.sa != null && m.sb != null && m.a && m.b) {
+      priorFinishedByFixture[m.a + "|" + m.b] = m;
+    }
+  }));
+} catch (e) {}
+
 // --- bracket (with scores / live status / kickoff) ---
 const roundIdx = Object.fromEntries(ROUND_ORDER.map((r,i)=>[r,i]));
 const bracket = ROUND_ORDER.map(r => ({ name: r, matches: [] }));
@@ -79,6 +89,14 @@ matches
     });
   });
 
+bracket.forEach(r => r.matches.forEach(m => {
+  const prior = (m.st !== "FT" && m.a && m.b) ? priorFinishedByFixture[m.a + "|" + m.b] : null;
+  if (prior) {
+    m.sa = prior.sa; m.sb = prior.sb; m.pa = prior.pa; m.pb = prior.pb;
+    m.w = prior.w; m.st = "FT";
+  }
+}));
+
 // --- eliminations ---
 const reachedKO = new Set();
 matches.filter(m => KO_STAGES.has(m.stage)).forEach(m => {
@@ -96,6 +114,9 @@ matches.filter(m => KO_STAGES.has(m.stage) && FINISHED.has(m.status)).forEach(m 
     if (nm && nm !== w) eliminated.add(nm);
   });
 });
+bracket.forEach(r => r.matches.forEach(m => {
+  if (m.st === "FT" && m.w) [m.a, m.b].forEach(t => { if (t && t !== m.w) eliminated.add(t); });
+}));
 const elimSweep = [...eliminated].filter(t => SWEEP_SET.has(t)).sort();
 
 // --- champion / round / live ---
