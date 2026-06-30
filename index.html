@@ -140,6 +140,25 @@
   .updated.live-now::before{background:#ff5252;
     box-shadow:0 0 0 3px rgba(255,82,82,.18);animation:pulse 1.6s ease-out infinite}
 
+  /* ---- name highlight ---- */
+  .pickable{cursor:pointer;border-radius:6px}
+  .pickable:hover{text-decoration:underline;text-underline-offset:3px;
+    text-decoration-color:var(--oc,var(--gold))}
+  .slot.pick{box-shadow:inset 0 0 0 2px var(--pc,var(--gold))}
+  #bracket.dim .slot:not(.pick){opacity:.28}
+  .board-row.sel{box-shadow:inset 0 0 0 2px var(--oc,var(--gold))}
+  .pcard.sel{box-shadow:0 0 0 2px var(--oc,var(--gold))}
+  #pickbar{position:sticky;top:8px;z-index:5;display:flex;align-items:center;gap:9px;
+    margin-bottom:14px;padding:9px 14px;border-radius:999px;font-size:13px;font-weight:600;
+    background:var(--surface-2);border:1px solid var(--oc,var(--line))}
+  #pickbar[hidden]{display:none}
+  #pickbar .pb-dot{width:11px;height:11px;border-radius:50%;
+    background:var(--oc,var(--gold));flex:0 0 auto}
+  #pickbar b{font-weight:800}
+  #pickbar .pb-clear{margin-left:auto;cursor:pointer;border:0;border-radius:999px;
+    padding:5px 12px;font:inherit;font-weight:700;
+    background:var(--oc,var(--gold));color:#0c1116}
+
   /* ---- players ---- */
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
@@ -190,6 +209,8 @@
     <p id="sub">Last team standing takes the glory · USA · Canada · Mexico</p>
     <div class="updated" id="updated"></div>
   </header>
+
+  <div id="pickbar" hidden></div>
 
   <section id="board-sec">
     <div class="sec-head">
@@ -271,6 +292,7 @@ let BRACKET = [
    ============================================================ */
 const ownerOf = {};
 PLAYERS.forEach(p => p.countries.forEach(c => ownerOf[c] = p));
+let SELECTED = null; // player name whose teams are highlighted
 const $ = s => document.querySelector(s);
 const elimSet = () => new Set(ELIMINATED);
 
@@ -297,10 +319,10 @@ function renderBoard(){
     const pips = Array.from({length:6}, (_,k) =>
       `<span class="pip ${k < r.alive ? "on":""}"></span>`).join("");
     const me = r.p.name === ME ? `<span class="me">YOU</span>` : "";
-    return `<div class="board-row ${leader?"leader":""}">
+    return `<div class="board-row ${leader?"leader":""} ${r.p.name===SELECTED?"sel":""}" style="--oc:${r.p.color}">
       <span class="rank">${i+1}</span>
       ${avatar(r.p,"av-sm")}
-      <span class="who">${r.p.name}${me}</span>
+      <span class="who pickable" data-pick="${r.p.name}">${r.p.name}${me}</span>
       <span class="alivebar">${pips}</span>
       <span class="count">${r.alive}<small>/6</small></span>
     </div>`;
@@ -316,7 +338,9 @@ function slot(team, m, side){
   const showScore = m.st === "FT" || m.st === "LIVE" || m.st === "HT";
   const v = side === "a" ? m.sa : m.sb;
   const sc = showScore && v != null ? `<span class="sc">${v}</span>` : "";
-  return `<div class="slot ${cls}">${mark}<span class="nm">${team}</span>${sc}</div>`;
+  const picked = o && o.name === SELECTED;
+  const pst = picked ? ` style="--pc:${o.color}"` : "";
+  return `<div class="slot ${cls} ${picked?"pick":""}"${pst}>${mark}<span class="nm">${team}</span>${sc}</div>`;
 }
 
 function matchFoot(m){
@@ -332,6 +356,7 @@ function renderBracket(){
   $("#champ").className = CHAMPION ? "team" : "team tbd";
   // Reveal a round only once a team has reached it (the opening round is always shown).
   const visible = BRACKET.filter((rd,i) => i === 0 || rd.matches.some(m => m.a || m.b));
+  $("#bracket").classList.toggle("dim", !!SELECTED);
   $("#bracket").innerHTML = visible.map(rd => {
     // Hide pure-TBD games (neither team decided yet). Place each card so rows
     // read left-to-right in pairs, paging sideways every 8 games (4 rows x 2).
@@ -355,10 +380,10 @@ function renderPlayers(){
     const chips = p.countries.map(c =>
       `<span class="chip ${out.has(c)?"out":""}"><span class="cdot"></span>${c}</span>`).join("");
     const me = p.name === ME ? `<span class="me">YOU</span>` : "";
-    return `<div class="pcard" style="--oc:${p.color}">
+    return `<div class="pcard ${p.name===SELECTED?"sel":""}" style="--oc:${p.color}">
       <div class="top">
         ${avatar(p,"av-lg")}
-        <span class="pname">${p.name}${me}</span>
+        <span class="pname pickable" data-pick="${p.name}">${p.name}${me}</span>
         <span class="tally ${alive===0?"zero":""}">${alive} in</span>
       </div>
       <div class="chips">${chips}</div>
@@ -373,7 +398,25 @@ function renderStatus(){
   u.classList.toggle("live-now", !!ANY_LIVE);
 }
 
-function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); }
+function renderPickbar(){
+  const el = $("#pickbar");
+  const p = SELECTED && PLAYERS.find(x => x.name === SELECTED);
+  if(!p){ el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.style.setProperty("--oc", p.color);
+  el.innerHTML = `<span class="pb-dot"></span>Highlighting <b>${p.name}</b>’s teams`
+    + `<button class="pb-clear" data-pick="${p.name}">Clear ✕</button>`;
+}
+
+// Click a player's name (Standings or The Draw) to highlight their teams; click again to clear.
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-pick]");
+  if(!el) return;
+  SELECTED = (SELECTED === el.dataset.pick) ? null : el.dataset.pick;
+  renderAll();
+});
+
+function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderPickbar(); }
 
 function applyData(d){
   if(!d) return;
