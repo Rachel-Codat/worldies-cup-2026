@@ -2,8 +2,11 @@ name: Refresh results
 
 on:
   schedule:
-    - cron: '0 9 * * *'   # daily 09:00 UTC (~10:00 BST)
-  workflow_dispatch: {}    # allow manual runs from the Actions tab
+    # Poll every 30 min across the window WC2026 matches can finish
+    # (afternoon US-Eastern through late-evening US-Pacific + extra time), in UTC.
+    - cron: '0,30 15-23 * * *'   # 15:00–23:30 UTC
+    - cron: '0,30 0-7 * * *'     # 00:00–07:30 UTC
+  workflow_dispatch: {}          # allow manual runs from the Actions tab
 
 permissions:
   contents: write
