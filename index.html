@@ -96,9 +96,15 @@
   .round-lab .name{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
     font-weight:800;color:var(--muted)}
   .round-lab .ln{height:1px;background:var(--line);flex:1}
-  .matches{display:grid;gap:10px;padding-bottom:8px;
-    grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-  .match{min-width:0;
+  /* 4 rows tall; columns flow sideways. Two columns (= 8 games) fit per
+     view, the rest reached by horizontal scroll. */
+  .matches{display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,auto);
+    grid-auto-columns:calc((100% - 10px) / 2);gap:10px;
+    overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity}
+  .matches::-webkit-scrollbar{height:6px}
+  .matches::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .match{min-width:0;scroll-snap-align:start;
     background:var(--surface);border:1px solid var(--line);
     border-radius:11px;padding:5px;display:flex;flex-direction:column;gap:3px}
   .slot{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px}
@@ -326,7 +332,8 @@ function renderBracket(){
   // Reveal a round only once a team has reached it (the opening round is always shown).
   const visible = BRACKET.filter((rd,i) => i === 0 || rd.matches.some(m => m.a || m.b));
   $("#bracket").innerHTML = visible.map(rd => {
-    const cards = rd.matches.map(m =>
+    // Hide pure-TBD games (neither team decided yet).
+    const cards = rd.matches.filter(m => m.a || m.b).map(m =>
       `<div class="match">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot">${matchFoot(m)}</div></div>`).join("");
     return `<div class="round">
       <div class="round-lab"><span class="name">${rd.name}</span><span class="ln"></span></div>
