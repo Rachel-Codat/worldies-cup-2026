@@ -1,6 +1,8 @@
 name: Refresh results
 
 on:
+  push:
+    branches: [main]            # auto-deploy on every push to main
   schedule:
     # Every 5 min across the window WC2026 matches can be in play (UTC).
     # GitHub cron is best-effort and may drift/skip under load.
