@@ -405,7 +405,7 @@ function renderPickbar(){
   if(!p){ el.hidden = true; el.innerHTML = ""; return; }
   el.hidden = false;
   el.style.setProperty("--oc", p.color);
-  el.innerHTML = `<span class="pb-dot"></span>Highlighting <b>${p.name}</b>’s teams`
+  el.innerHTML = `<span class="pb-dot"></span><span>Highlighting <b>${p.name}</b>’s teams</span>`
     + `<button class="pb-clear" data-pick="${p.name}">Clear ✕</button>`;
 }
 
