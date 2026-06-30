@@ -37,10 +37,7 @@ jobs:
         env:
           FD_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
         run: |
-          curl -s --max-time 60 \
-            "https://api.football-data.org/v4/competitions/WC/matches" \
-            -H "X-Auth-Token: $FD_TOKEN" -o build/matches.json
-          node build/generate.js build/matches.json index.html
+          bash build/refresh.sh
           mkdir -p _site
           cp index.html data.json _site/
 
