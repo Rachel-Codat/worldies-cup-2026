@@ -96,9 +96,10 @@
   .round-lab .name{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
     font-weight:800;color:var(--muted)}
   .round-lab .ln{height:1px;background:var(--line);flex:1}
-  /* 4 rows tall; columns flow sideways. Two columns (= 8 games) fit per
-     view, the rest reached by horizontal scroll. */
-  .matches{display:grid;grid-auto-flow:column;grid-template-rows:repeat(4,auto);
+  /* 4 rows tall; cards are placed explicitly (renderBracket) so each row
+     reads left-to-right in pairs. Two columns (= 8 games) fit per view,
+     the rest reached by horizontal scroll. */
+  .matches{display:grid;grid-template-rows:repeat(4,auto);
     grid-auto-columns:calc((100% - 10px) / 2);gap:10px;
     overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;
     scroll-snap-type:x proximity}
@@ -332,9 +333,14 @@ function renderBracket(){
   // Reveal a round only once a team has reached it (the opening round is always shown).
   const visible = BRACKET.filter((rd,i) => i === 0 || rd.matches.some(m => m.a || m.b));
   $("#bracket").innerHTML = visible.map(rd => {
-    // Hide pure-TBD games (neither team decided yet).
-    const cards = rd.matches.filter(m => m.a || m.b).map(m =>
-      `<div class="match">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot">${matchFoot(m)}</div></div>`).join("");
+    // Hide pure-TBD games (neither team decided yet). Place each card so rows
+    // read left-to-right in pairs, paging sideways every 8 games (4 rows x 2).
+    const cards = rd.matches.filter(m => m.a || m.b).map((m, i) => {
+      const within = i % 8, page = (i - within) / 8;
+      const row = Math.floor(within / 2) + 1;
+      const col = page * 2 + (within % 2) + 1;
+      return `<div class="match" style="grid-row:${row};grid-column:${col}">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot">${matchFoot(m)}</div></div>`;
+    }).join("");
     return `<div class="round">
       <div class="round-lab"><span class="name">${rd.name}</span><span class="ln"></span></div>
       <div class="matches">${cards}</div>
