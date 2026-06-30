@@ -55,12 +55,25 @@ matches
   .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate) || a.id - b.id)
   .forEach(m => {
     const ft = (m.score && m.score.fullTime) || {};
+    const rt = (m.score && m.score.regularTime) || {};
+    const et = (m.score && m.score.extraTime) || {};
+    const pen = (m.score && m.score.penalties) || {};
+    const isPenaltyShootout = m.score && m.score.duration === "PENALTY_SHOOTOUT" && pen.home != null;
+    const regulationGoals = side => {
+      if (isPenaltyShootout) {
+        if (rt[side] != null) return rt[side] + (et[side] != null ? et[side] : 0);
+        if (ft[side] != null && pen[side] != null) return ft[side] - pen[side];
+      }
+      return ft[side] != null ? ft[side] : null;
+    };
     bracket[roundIdx[STAGE_TO_ROUND[m.stage]]].matches.push({
       a: canon(m.homeTeam && m.homeTeam.name),
       b: canon(m.awayTeam && m.awayTeam.name),
       w: winnerName(m),
-      sa: ft.home != null ? ft.home : null,
-      sb: ft.away != null ? ft.away : null,
+      sa: regulationGoals("home"),
+      sb: regulationGoals("away"),
+      pa: isPenaltyShootout ? pen.home : null,
+      pb: isPenaltyShootout ? pen.away : null,
       st: stOf(m.status),
       ko: m.utcDate || null,
     });
