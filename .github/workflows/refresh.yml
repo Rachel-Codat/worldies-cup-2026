@@ -34,6 +34,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Seed prior state from the live site so finished results stay sticky
+        run: |
+          curl -sf --max-time 30 \
+            "https://rachel-codat.github.io/worldies-cup-2026/data.json" \
+            -o data.json || true
+
       - name: Pull live results and rebuild site
         env:
           FD_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
