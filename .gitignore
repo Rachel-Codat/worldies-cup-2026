@@ -1,0 +1,3 @@
+.secrets/
+build/matches.json
+*.tmp
