@@ -141,8 +141,9 @@
     box-shadow:0 0 0 3px rgba(255,82,82,.18);animation:pulse 1.6s ease-out infinite}
 
   /* ---- name highlight ---- */
-  .pickable{cursor:pointer;border-radius:6px}
-  .pickable:hover{text-decoration:underline;text-underline-offset:3px;
+  .pickable{cursor:pointer}
+  .board-row.pickable:hover .who,.pcard.pickable:hover .pname{
+    text-decoration:underline;text-underline-offset:3px;
     text-decoration-color:var(--oc,var(--gold))}
   .slot.pick{box-shadow:inset 0 0 0 2px var(--pc,var(--gold))}
   #bracket.dim .slot:not(.pick){opacity:.28}
@@ -319,10 +320,10 @@ function renderBoard(){
     const pips = Array.from({length:6}, (_,k) =>
       `<span class="pip ${k < r.alive ? "on":""}"></span>`).join("");
     const me = r.p.name === ME ? `<span class="me">YOU</span>` : "";
-    return `<div class="board-row ${leader?"leader":""} ${r.p.name===SELECTED?"sel":""}" style="--oc:${r.p.color}">
+    return `<div class="board-row pickable ${leader?"leader":""} ${r.p.name===SELECTED?"sel":""}" style="--oc:${r.p.color}" data-pick="${r.p.name}">
       <span class="rank">${i+1}</span>
       ${avatar(r.p,"av-sm")}
-      <span class="who pickable" data-pick="${r.p.name}">${r.p.name}${me}</span>
+      <span class="who">${r.p.name}${me}</span>
       <span class="alivebar">${pips}</span>
       <span class="count">${r.alive}<small>/6</small></span>
     </div>`;
@@ -380,10 +381,10 @@ function renderPlayers(){
     const chips = p.countries.map(c =>
       `<span class="chip ${out.has(c)?"out":""}"><span class="cdot"></span>${c}</span>`).join("");
     const me = p.name === ME ? `<span class="me">YOU</span>` : "";
-    return `<div class="pcard ${p.name===SELECTED?"sel":""}" style="--oc:${p.color}">
+    return `<div class="pcard pickable ${p.name===SELECTED?"sel":""}" style="--oc:${p.color}" data-pick="${p.name}">
       <div class="top">
         ${avatar(p,"av-lg")}
-        <span class="pname pickable" data-pick="${p.name}">${p.name}${me}</span>
+        <span class="pname">${p.name}${me}</span>
         <span class="tally ${alive===0?"zero":""}">${alive} in</span>
       </div>
       <div class="chips">${chips}</div>
