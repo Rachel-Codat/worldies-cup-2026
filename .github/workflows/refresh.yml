@@ -1,0 +1,43 @@
+name: Refresh results
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # daily 09:00 UTC (~10:00 BST)
+  workflow_dispatch: {}    # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Pull live results and rebake index.html
+        env:
+          FD_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+        run: |
+          curl -s --max-time 60 \
+            "https://api.football-data.org/v4/competitions/WC/matches" \
+            -H "X-Auth-Token: $FD_TOKEN" -o build/matches.json
+          node build/generate.js build/matches.json index.html
+
+      - name: Commit if results changed
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No change — skipping commit."
+          else
+            git config user.name  "worldies-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "Refresh results $(date -u +%F)"
+            git push
+          fi
