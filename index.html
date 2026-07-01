@@ -395,10 +395,12 @@ function renderPlayers(){
   }).join("");
 }
 
+let LAST_CHECKED = null;
 function renderStatus(){
   const t = GENERATED_AT ? ` · updated ${fmtTime(GENERATED_AT)}` : "";
+  const c = LAST_CHECKED ? ` · checked ${fmtTime(LAST_CHECKED)}` : "";
   const u = $("#updated");
-  u.textContent = (ANY_LIVE ? "● LIVE · " : "") + ROUND + t;
+  u.textContent = (ANY_LIVE ? "● LIVE · " : "") + ROUND + t + c;
   u.classList.toggle("live-now", !!ANY_LIVE);
 }
 
@@ -440,7 +442,7 @@ function applyData(d){
 async function poll(){
   try{
     const r = await fetch("data.json?t=" + Date.now(), {cache:"no-store"});
-    if(r.ok) applyData(await r.json());
+    if(r.ok){ LAST_CHECKED = new Date().toISOString(); applyData(await r.json()); }
   }catch(e){ /* keep current data */ }
 }
 
