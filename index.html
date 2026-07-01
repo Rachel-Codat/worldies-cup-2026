@@ -131,19 +131,21 @@
     text-transform:uppercase;color:var(--muted)}
   .mstat.ko{text-transform:none;letter-spacing:.01em;font-weight:600;font-size:11px}
   .live{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;
-    font-weight:800;letter-spacing:.1em;color:#ff6b6b}
-  .lpip{width:7px;height:7px;border-radius:50%;background:#ff5252;
-    box-shadow:0 0 0 0 rgba(255,82,82,.6);animation:pulse 1.6s ease-out infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,82,82,.55)}
-    70%{box-shadow:0 0 0 7px rgba(255,82,82,0)}100%{box-shadow:0 0 0 0 rgba(255,82,82,0)}}
-  .updated.live-now{color:#ff8c8c;background:rgba(255,82,82,.12);
-    border-color:rgba(255,82,82,.4)}
-  .updated.live-now::before{background:#ff5252;
-    box-shadow:0 0 0 3px rgba(255,82,82,.18);animation:pulse 1.6s ease-out infinite}
+    font-weight:800;letter-spacing:.1em;color:var(--alive)}
+  .lpip{width:7px;height:7px;border-radius:50%;background:var(--alive);
+    box-shadow:0 0 0 0 rgba(70,201,139,.6);animation:pulse 1.6s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(70,201,139,.55)}
+    70%{box-shadow:0 0 0 7px rgba(70,201,139,0)}100%{box-shadow:0 0 0 0 rgba(70,201,139,0)}}
+  .updated.live-now::before{animation:pulse 1.6s ease-out infinite}
   .stale-banner{margin-top:10px;display:none;padding:8px 12px;border-radius:8px;
     font-size:13px;font-weight:600;color:#ffcf7a;
     background:rgba(255,170,40,.14);border:1px solid rgba(255,170,40,.38)}
   .stale-banner.show{display:inline-block}
+  #live-sec{margin-bottom:22px}
+  #live-now{display:flex;flex-wrap:wrap;gap:10px}
+  #live-now .match{flex:1 1 240px;border-color:rgba(70,201,139,.5);
+    background:linear-gradient(rgba(70,201,139,.08),rgba(70,201,139,.02))}
+  #live-now .mstat.rnd{color:var(--alive)}
 
   /* ---- name highlight ---- */
   .pickable{cursor:pointer}
@@ -216,6 +218,11 @@
     <div class="updated" id="updated"></div>
     <div class="stale-banner" id="stale"></div>
   </header>
+
+  <section id="live-sec" hidden>
+    <div class="sec-head"><h2>Live now</h2><span class="hint">in progress</span></div>
+    <div id="live-now"></div>
+  </section>
 
   <div id="pickbar" hidden></div>
 
@@ -424,6 +431,17 @@ function renderStale(){
   }
 }
 
+function renderLive(){
+  const sec = $("#live-sec"), el = $("#live-now");
+  const live = [];
+  BRACKET.forEach(rd => rd.matches.forEach(m => { if(m.st === "LIVE" || m.st === "HT") live.push([m, rd.name]); }));
+  if(!live.length){ sec.hidden = true; el.innerHTML = ""; return; }
+  sec.hidden = false;
+  el.innerHTML = live.map(([m, round]) =>
+    `<div class="match">${slot(m.a,m,"a")}${slot(m.b,m,"b")}<div class="mfoot"><span class="mstat rnd">${round}</span>${matchFoot(m)}</div></div>`
+  ).join("");
+}
+
 function renderStatus(){
   const u = $("#updated");
   u.textContent = (ANY_LIVE ? "● LIVE · " : "") + ROUND;
@@ -448,7 +466,7 @@ document.addEventListener("click", e => {
   renderAll();
 });
 
-function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderStale(); renderPickbar(); }
+function renderAll(){ renderLive(); renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderStale(); renderPickbar(); }
 
 function applyData(d){
   if(!d) return;
