@@ -149,14 +149,17 @@ if (koCount === 0) {
   process.exit(0);
 }
 
-const state = { version, round, generatedAt, anyLive, champion, eliminated: elimSweep, bracket };
+const deployedSha = process.env.GITHUB_SHA || null;
+const state = { version, round, generatedAt, anyLive, champion, eliminated: elimSweep, bracket, deployedSha };
 
 let published = null;
 if (publishedPath) {
   try { published = JSON.parse(fs.readFileSync(publishedPath, "utf8")); } catch (e) {}
 }
-if (published && resultsFingerprintExcludingTimestamp(published) === resultsFingerprintExcludingTimestamp(state)) {
-  console.log("NO_CHANGE: results identical to the published site — skipping deploy.");
+const resultsUnchanged = published && resultsFingerprintExcludingTimestamp(published) === resultsFingerprintExcludingTimestamp(state);
+const siteUnchanged = published && published.deployedSha === deployedSha;
+if (resultsUnchanged && siteUnchanged) {
+  console.log("NO_CHANGE: results and site version identical to the published site — skipping deploy.");
   writeDeployNeededOutput(false);
   process.exit(0);
 }
