@@ -140,6 +140,10 @@
     border-color:rgba(255,82,82,.4)}
   .updated.live-now::before{background:#ff5252;
     box-shadow:0 0 0 3px rgba(255,82,82,.18);animation:pulse 1.6s ease-out infinite}
+  .stale-banner{margin-top:10px;display:none;padding:8px 12px;border-radius:8px;
+    font-size:13px;font-weight:600;color:#ffcf7a;
+    background:rgba(255,170,40,.14);border:1px solid rgba(255,170,40,.38)}
+  .stale-banner.show{display:inline-block}
 
   /* ---- name highlight ---- */
   .pickable{cursor:pointer}
@@ -210,6 +214,7 @@
     <h1>Worldies Cup <span class="yr">2026</span></h1>
     <p id="sub">Last team standing takes the glory · USA · Canada · Mexico</p>
     <div class="updated" id="updated"></div>
+    <div class="stale-banner" id="stale"></div>
   </header>
 
   <div id="pickbar" hidden></div>
@@ -395,6 +400,28 @@ function renderPlayers(){
   }).join("");
 }
 
+const STALE_AFTER_MS = 2.5 * 60 * 60 * 1000;
+function overdueMatch(){
+  const now = Date.now();
+  for(const r of BRACKET){
+    for(const m of (r.matches || [])){
+      if(m.st === "sched" && m.ko && now - new Date(m.ko).getTime() > STALE_AFTER_MS) return m;
+    }
+  }
+  return null;
+}
+function renderStale(){
+  const el = $("#stale");
+  const m = overdueMatch();
+  if(m){
+    const label = (m.a && m.b) ? `${m.a} v ${m.b}` : "A knockout match";
+    el.textContent = `⚠ Results may be delayed — ${label} kicked off at ${fmtTime(m.ko)} but still shows as scheduled.`;
+    el.classList.add("show");
+  } else {
+    el.classList.remove("show");
+  }
+}
+
 let LAST_CHECKED = null;
 function renderStatus(){
   const t = GENERATED_AT ? ` · updated ${fmtTime(GENERATED_AT)}` : "";
@@ -422,7 +449,7 @@ document.addEventListener("click", e => {
   renderAll();
 });
 
-function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderPickbar(); }
+function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderStale(); renderPickbar(); }
 
 function applyData(d){
   if(!d) return;

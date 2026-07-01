@@ -16,8 +16,8 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
     break
   fi
   if [ "$attempt" = "$ATTEMPTS" ]; then
-    echo "Feed unavailable after $ATTEMPTS attempts (last HTTP $code); generate.js will keep existing data."
-    break
+    echo "Feed unavailable after $ATTEMPTS attempts (last HTTP $code)." >&2
+    exit 1
   fi
   rateWindowResetSeconds=$(awk 'tolower($1)=="x-requestcounter-reset:"{gsub(/\r/,"",$2);print $2}' "$HDR")
   if [ -n "$rateWindowResetSeconds" ]; then wait=$((rateWindowResetSeconds + 2)); else wait=$((attempt * 10)); fi
