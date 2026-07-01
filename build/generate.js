@@ -3,7 +3,16 @@
    Usage: node build/generate.js <matches.json> <tracker.html> */
 const fs = require("fs");
 const path = require("path");
-const [,, matchesPath, htmlPath] = process.argv;
+const [,, matchesPath, htmlPath, publishedPath] = process.argv;
+
+const writeDeployNeededOutput = deployNeeded => {
+  const githubOutput = process.env.GITHUB_OUTPUT;
+  if (githubOutput) fs.appendFileSync(githubOutput, `changed=${deployNeeded}\n`);
+};
+const resultsFingerprintExcludingTimestamp = s => JSON.stringify({
+  round: s.round, anyLive: s.anyLive, champion: s.champion,
+  eliminated: s.eliminated, bracket: s.bracket,
+});
 
 // API name -> sweepstake canonical name
 const ALIAS = {
@@ -136,11 +145,24 @@ const version = "v" + generatedAt.slice(0,16) + "-" + matches.filter(m => FINISH
 const koCount = bracket.reduce((n, r) => n + r.matches.length, 0);
 if (koCount === 0) {
   console.warn("WARN: feed returned 0 knockout matches — keeping existing data, no rewrite.");
+  writeDeployNeededOutput(false);
   process.exit(0);
 }
 
-// --- write data.json (polled live by the page) ---
 const state = { version, round, generatedAt, anyLive, champion, eliminated: elimSweep, bracket };
+
+let published = null;
+if (publishedPath) {
+  try { published = JSON.parse(fs.readFileSync(publishedPath, "utf8")); } catch (e) {}
+}
+if (published && resultsFingerprintExcludingTimestamp(published) === resultsFingerprintExcludingTimestamp(state)) {
+  console.log("NO_CHANGE: results identical to the published site — skipping deploy.");
+  writeDeployNeededOutput(false);
+  process.exit(0);
+}
+writeDeployNeededOutput(true);
+
+// --- write data.json (polled live by the page) ---
 fs.writeFileSync(path.join(path.dirname(htmlPath), "data.json"), JSON.stringify(state));
 
 // --- bake the same into the HTML (static fallback) ---

@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -41,6 +41,7 @@ jobs:
             -o data.json || true
 
       - name: Pull live results and rebuild site
+        id: build
         env:
           FD_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
         run: |
@@ -48,9 +49,12 @@ jobs:
           mkdir -p _site
           cp index.html data.json _site/
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.build.outputs.changed == 'true' || github.event_name == 'push'
+        uses: actions/configure-pages@v5
+      - if: steps.build.outputs.changed == 'true' || github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
       - id: deploy
+        if: steps.build.outputs.changed == 'true' || github.event_name == 'push'
         uses: actions/deploy-pages@v4

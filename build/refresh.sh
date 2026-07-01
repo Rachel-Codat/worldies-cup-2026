@@ -25,4 +25,4 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
   sleep "$wait"
 done
 
-node build/generate.js "$OUT" index.html
+node build/generate.js "$OUT" index.html data.json
