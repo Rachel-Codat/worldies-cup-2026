@@ -215,7 +215,6 @@
     <div class="eyebrow">The Sweepstake</div>
     <h1>Worldies Cup <span class="yr">2026</span></h1>
     <p id="sub">Last team standing takes the glory · USA · Canada · Mexico</p>
-    <div class="updated" id="updated"></div>
     <div class="stale-banner" id="stale"></div>
   </header>
 
@@ -442,11 +441,6 @@ function renderLive(){
   ).join("");
 }
 
-function renderStatus(){
-  const u = $("#updated");
-  u.textContent = ROUND;
-}
-
 function renderPickbar(){
   const el = $("#pickbar");
   const p = SELECTED && PLAYERS.find(x => x.name === SELECTED);
@@ -465,7 +459,7 @@ document.addEventListener("click", e => {
   renderAll();
 });
 
-function renderAll(){ renderLive(); renderBoard(); renderBracket(); renderPlayers(); renderStatus(); renderStale(); renderPickbar(); }
+function renderAll(){ renderLive(); renderBoard(); renderBracket(); renderPlayers(); renderStale(); renderPickbar(); }
 
 function applyData(d){
   if(!d) return;
