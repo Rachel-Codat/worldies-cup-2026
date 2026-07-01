@@ -400,7 +400,8 @@ function renderPlayers(){
   }).join("");
 }
 
-const STALE_AFTER_MS = 2.5 * 60 * 60 * 1000;
+const STALE_AFTER_MS = 10 * 60 * 1000;
+let DATA_LOADED = false;
 function overdueMatch(){
   const now = Date.now();
   for(const r of BRACKET){
@@ -412,6 +413,7 @@ function overdueMatch(){
 }
 function renderStale(){
   const el = $("#stale");
+  if(!DATA_LOADED){ el.classList.remove("show"); return; }
   const m = overdueMatch();
   if(m){
     const label = (m.a && m.b) ? `${m.a} v ${m.b}` : "A knockout match";
@@ -450,6 +452,7 @@ function renderAll(){ renderBoard(); renderBracket(); renderPlayers(); renderSta
 
 function applyData(d){
   if(!d) return;
+  DATA_LOADED = true;
   if(typeof d.champion !== "undefined") CHAMPION = d.champion;
   if(Array.isArray(d.eliminated)) ELIMINATED = d.eliminated;
   // Only adopt a bracket that actually has games — never let an empty feed wipe the seed.
