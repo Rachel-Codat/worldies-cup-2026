@@ -37,7 +37,7 @@ const ROUND_ORDER = ["Round of 32","Round of 16","Quarter-finals","Semi-finals",
 const KO_STAGES = new Set(Object.keys(STAGE_TO_ROUND).concat(["THIRD_PLACE"]));
 
 const FINISHED = new Set(["FINISHED","AWARDED"]);
-const LIVE = new Set(["IN_PLAY"]);
+const LIVE = new Set(["IN_PLAY","LIVE"]);
 const PAUSED = new Set(["PAUSED"]);
 
 let matches = [];
