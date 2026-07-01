@@ -376,7 +376,7 @@ function renderBracket(){
   $("#bracket").innerHTML = visible.map(rd => {
     // Hide pure-TBD games (neither team decided yet). Place each card so rows
     // read left-to-right in pairs, paging sideways every 8 games (4 rows x 2).
-    const cards = rd.matches.filter(m => m.a || m.b).map((m, i) => {
+    const cards = rd.matches.filter(m => (m.a || m.b) && m.st !== "LIVE" && m.st !== "HT").map((m, i) => {
       const within = i % 8, page = (i - within) / 8;
       const row = Math.floor(within / 2) + 1;
       const col = page * 2 + (within % 2) + 1;
